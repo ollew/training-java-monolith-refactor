@@ -1,0 +1,37 @@
+name: Acceptance Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      baseUrl:
+        description: 'Base URL of the users-service to test (e.g. http://localhost:9080)'
+        required: false
+        default: 'http://localhost:9080'
+
+jobs:
+  acceptance:
+    name: Run Users-Service Acceptance Tests
+    runs-on: ubuntu-latest
+    env:
+      USERS_BASE: ${{ github.event.inputs.baseUrl || 'http://localhost:9080' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies (tests/users-service)
+        working-directory: tests/users-service
+        run: |
+          npm ci
+
+      - name: Run acceptance tests
+        working-directory: tests/users-service
+        run: |
+          npm test -- $USERS_BASE
