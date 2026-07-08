@@ -1,7 +1,16 @@
 const axios = require('axios');
+const Ajv = require('ajv');
+const fs = require('fs');
 
 const BASE = process.env.USERS_BASE || process.argv[2] || 'http://localhost:9080';
 axios.defaults.baseURL = BASE;
+
+// Load schemas
+const ajv = new Ajv();
+const userSchema = JSON.parse(fs.readFileSync(__dirname + '/schemas/user.schema.json'));
+const totalsSchema = JSON.parse(fs.readFileSync(__dirname + '/schemas/totals.schema.json'));
+const validateUser = ajv.compile(userSchema);
+const validateTotals = ajv.compile(totalsSchema);
 
 function ok(msg){ console.log('[PASS] ' + msg); }
 function fail(msg){ console.error('[FAIL] ' + msg); process.exitCode = 2; }
@@ -25,7 +34,9 @@ async function run(){
   const createPayload = { email: 'testuser+1@example.org', name: 'Test User 1' };
   let res = await tryRequest(axios.post('/api/users', createPayload));
   if (res.ok && res.status === 201 && res.data && res.data.email === createPayload.email) {
-    ok('Create user');
+    // JSON Schema validation
+    if (validateUser(res.data)) ok('Create user and response matches schema');
+    else fail('Create user - response did not match user schema: ' + JSON.stringify(validateUser.errors));
   } else {
     fail('Create user - unexpected response: ' + JSON.stringify(res));
   }
@@ -78,7 +89,10 @@ async function run(){
   if (totals.ok && totals.status === 200) {
     const th = parseFloat(totals.data.totalHours || totals.data.hours || 0);
     const tr = parseFloat(totals.data.totalRevenue || totals.data.revenue || 0);
-    if (approxEqual(th, 3.75, 1e-3) && approxEqual(tr, 437.5, 1e-2)) ok('Totals calculation matches expected');
+    // schema validation first
+    if (!validateTotals(totals.data)) {
+      fail('Totals response did not match schema: ' + JSON.stringify(validateTotals.errors));
+    } else if (approxEqual(th, 3.75, 1e-3) && approxEqual(tr, 437.5, 1e-2)) ok('Totals calculation matches expected');
     else fail(`Totals mismatch: got hours=${th} revenue=${tr}`);
   } else {
     fail('Totals endpoint failed: ' + JSON.stringify(totals));

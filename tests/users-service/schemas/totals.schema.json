@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "UserTotals",
+  "type": "object",
+  "required": ["totalHours", "totalRevenue"],
+  "properties": {
+    "totalHours": { "type": "number" },
+    "totalRevenue": { "type": "number" }
+  },
+  "additionalProperties": true
+}
