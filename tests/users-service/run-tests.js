@@ -9,8 +9,10 @@ axios.defaults.baseURL = BASE;
 const ajv = new Ajv();
 const userSchema = JSON.parse(fs.readFileSync(__dirname + '/schemas/user.schema.json'));
 const totalsSchema = JSON.parse(fs.readFileSync(__dirname + '/schemas/totals.schema.json'));
+const errorSchema = JSON.parse(fs.readFileSync(__dirname + '/schemas/error.schema.json'));
 const validateUser = ajv.compile(userSchema);
 const validateTotals = ajv.compile(totalsSchema);
+const validateError = ajv.compile(errorSchema);
 
 function ok(msg){ console.log('[PASS] ' + msg); }
 function fail(msg){ console.error('[FAIL] ' + msg); process.exitCode = 2; }
@@ -47,11 +49,16 @@ async function run(){
   await tryRequest(axios.post('/api/users', dupPayload));
   res = await tryRequest(axios.post('/api/users', dupPayload));
   if (!res.ok && res.status === 409) {
-    const msg = res.data && (res.data.message || res.data.error || JSON.stringify(res.data));
-    if ((msg || '').toString().toLowerCase().includes('email')) {
-      ok('Duplicate create returned 409 with friendly message');
+    // Validate error shape
+    if (validateError(res.data)) {
+      const msg = res.data && (res.data.message || res.data.error || JSON.stringify(res.data));
+      if ((msg || '').toString().toLowerCase().includes('email')) {
+        ok('Duplicate create returned 409 with friendly message and valid error schema');
+      } else {
+        ok('Duplicate create returned 409 with valid error schema (message did not include "email")');
+      }
     } else {
-      ok('Duplicate create returned 409 (message did not include "email")');
+      fail('Duplicate create returned 409 but error response did not match schema: ' + JSON.stringify(validateError.errors));
     }
   } else {
     fail('Duplicate create - expected 409, got ' + JSON.stringify(res));
@@ -100,7 +107,10 @@ async function run(){
 
   // Test 5: Delete prevention when billable_hours exist
   const del = await tryRequest(axios.delete(`/api/users/${u1id}`));
-  if (!del.ok && del.status === 409) ok('Delete prevented with 409 when dependent billable_hours exist');
+  if (!del.ok && del.status === 409) {
+    if (validateError(del.data)) ok('Delete prevented with 409 and valid error schema when dependent billable_hours exist');
+    else fail('Delete returned 409 but error response did not match schema: ' + JSON.stringify(validateError.errors));
+  }
   else fail('Delete did not return 409 as expected');
 
   if (process.exitCode && process.exitCode !== 0) {
