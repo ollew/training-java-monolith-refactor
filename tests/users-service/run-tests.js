@@ -76,6 +76,75 @@ async function run(){
     fail('Expected 400 validation error for invalid create payload, got: ' + JSON.stringify(invalidRes));
   }
 
+  // Additionally assert there is a field-level error for 'email'
+  try {
+    const errs = invalidRes.data && invalidRes.data.errors;
+    if (Array.isArray(errs) && errs.some(e => e.field && e.field.toLowerCase() === 'email')) {
+      ok('Validation error contains field-level entry for email');
+    } else {
+      fail('Validation error did not include field-level entry for email: ' + JSON.stringify(errs));
+    }
+  } catch (e) {
+    fail('Could not assert field-level validation errors: ' + e);
+  }
+
+  // Test: invalid email format returns validation error with field 'email'
+  const invalidFormat = { email: 'not-an-email', name: 'Invalid Format' };
+  const invalidFormatRes = await tryRequest(axios.post('/api/users', invalidFormat));
+  if (!invalidFormatRes.ok && invalidFormatRes.status === 400) {
+    if (validateValidationError(invalidFormatRes.data)) {
+      const errs = invalidFormatRes.data.errors || [];
+      if (errs.some(e => e.field && e.field.toLowerCase() === 'email')) ok('Invalid email format returned 400 with email field error');
+      else fail('Invalid email format returned 400 but no email field error: ' + JSON.stringify(errs));
+    } else fail('Invalid email format returned 400 but did not match validation schema');
+  } else {
+    fail('Expected 400 for invalid email format, got: ' + JSON.stringify(invalidFormatRes));
+  }
+
+  // Test: list users and validate each item against user schema
+  const listRes = await tryRequest(axios.get('/api/users'));
+  if (listRes.ok && listRes.status === 200) {
+    const items = Array.isArray(listRes.data) ? listRes.data : [listRes.data];
+    let allValid = true;
+    for (const it of items) {
+      if (!validateUser(it)) { allValid = false; break; }
+    }
+    if (allValid) ok('List users - all items match user schema'); else fail('List users - some items did not match user schema');
+  } else {
+    fail('List users request failed: ' + JSON.stringify(listRes));
+  }
+
+  // Test: update user to use duplicate email -> expect 409 with error schema
+  // Create a new user to update
+  const uA = { email: 'uniqueA+' + Date.now() + '@example.org', name: 'Unique A' };
+  const uB = { email: 'uniqueB+' + Date.now() + '@example.org', name: 'Unique B' };
+  const createA = await tryRequest(axios.post('/api/users', uA));
+  const createB = await tryRequest(axios.post('/api/users', uB));
+  if (!(createA.ok && createA.status === 201 && createB.ok && createB.status === 201)) {
+    fail('Setup for update-duplicate test failed');
+  } else {
+    const bId = createB.data.id;
+    const updateBody = { email: createA.data.email, name: 'B renamed' };
+    const updRes = await tryRequest(axios.put(`/api/users/${bId}`, updateBody));
+    if (!updRes.ok && updRes.status === 409) {
+      if (validateError(updRes.data)) ok('Update to duplicate email returned 409 and matches error schema');
+      else fail('Update duplicate returned 409 but error response did not match schema');
+    } else {
+      fail('Expected 409 when updating to duplicate email, got: ' + JSON.stringify(updRes));
+    }
+  }
+
+  // Test: successful update changes name and returns user schema
+  const toUpdate = { email: 'to-update+' + Date.now() + '@example.org', name: 'Before' };
+  const create = await tryRequest(axios.post('/api/users', toUpdate));
+  if (!(create.ok && create.status === 201 && create.data && create.data.id)) { fail('Create for update test failed'); }
+  else {
+    const idu = create.data.id;
+    const updated = await tryRequest(axios.put(`/api/users/${idu}`, { email: toUpdate.email, name: 'After' }));
+    if (updated.ok && updated.status === 200 && validateUser(updated.data) && updated.data.name === 'After') ok('Update user success');
+    else fail('Update user did not return expected result: ' + JSON.stringify(updated));
+  }
+
   // Test 3: GET by id and by email
   const create2 = { email: 'testuser+2@example.org', name: 'Test User 2' };
   res = await tryRequest(axios.post('/api/users', create2));
