@@ -1,0 +1,12 @@
+{
+  "name": "users-service-tests",
+  "version": "1.0.0",
+  "description": "Lightweight Node.js acceptance tests for users-service",
+  "main": "run-tests.js",
+  "scripts": {
+    "test": "node run-tests.js"
+  },
+  "dependencies": {
+    "axios": "^1.4.0"
+  }
+}

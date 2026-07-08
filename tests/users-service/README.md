@@ -8,9 +8,19 @@ Running the acceptance tests
  - Ensure the database is initialized with `schema.sql` and appropriate seeds (see files in this folder).
  - Run the PowerShell test harness:
 
+- Run the PowerShell test harness (Windows):
+
 ```powershell
 cd tests/users-service
 powershell -ExecutionPolicy Bypass -File .\run-tests.ps1 -BaseUrl 'http://localhost:9080'
+```
+
+- Run the lightweight Node.js harness (cross-platform):
+
+```bash
+cd tests/users-service
+npm install
+npm test -- http://localhost:9080
 ```
 
 Notes:
