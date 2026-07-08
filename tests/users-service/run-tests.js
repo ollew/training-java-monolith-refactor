@@ -10,9 +10,11 @@ const ajv = new Ajv();
 const userSchema = JSON.parse(fs.readFileSync(__dirname + '/schemas/user.schema.json'));
 const totalsSchema = JSON.parse(fs.readFileSync(__dirname + '/schemas/totals.schema.json'));
 const errorSchema = JSON.parse(fs.readFileSync(__dirname + '/schemas/error.schema.json'));
+const validationErrorSchema = JSON.parse(fs.readFileSync(__dirname + '/schemas/validation-error.schema.json'));
 const validateUser = ajv.compile(userSchema);
 const validateTotals = ajv.compile(totalsSchema);
 const validateError = ajv.compile(errorSchema);
+const validateValidationError = ajv.compile(validationErrorSchema);
 
 function ok(msg){ console.log('[PASS] ' + msg); }
 function fail(msg){ console.error('[FAIL] ' + msg); process.exitCode = 2; }
@@ -62,6 +64,16 @@ async function run(){
     }
   } else {
     fail('Duplicate create - expected 409, got ' + JSON.stringify(res));
+  }
+
+  // Test: create with invalid payload -> expect 400 and structured validation error
+  const invalidPayload = { name: '' }; // missing/invalid email
+  const invalidRes = await tryRequest(axios.post('/api/users', invalidPayload));
+  if (!invalidRes.ok && invalidRes.status === 400) {
+    if (validateValidationError(invalidRes.data)) ok('Validation error returned 400 and matches validation-error schema');
+    else fail('Validation error 400 but did not match schema: ' + JSON.stringify(validateValidationError.errors));
+  } else {
+    fail('Expected 400 validation error for invalid create payload, got: ' + JSON.stringify(invalidRes));
   }
 
   // Test 3: GET by id and by email
