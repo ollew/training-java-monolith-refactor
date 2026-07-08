@@ -1,4 +1,4 @@
-Big Bad Monolith — Printable Rediscovery Summary
+aBig Bad Monolith — Printable Rediscovery Summary
 
 Purpose: concise one-page summary of business rules, data model, integrations, and open questions (Liberty deployment authoritative).
 

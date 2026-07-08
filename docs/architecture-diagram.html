@@ -18,22 +18,22 @@
 %% Shows target services, platform, data flow, and links to substitution-audit concerns
 graph LR
   subgraph Platform[Platform / Runtime]
-    K8s[Kubernetes / Managed Containers<br/>Config, Secrets, Observability]
+    K8s[Kubernetes / Managed Containers<br>Config, Secrets, Observability]
     Auth[Auth (OIDC) / API Gateway]
     Observability[Metrics / Tracing (Prometheus / OTEL)]
   end
 
   subgraph Services[Modernized Services]
-    UI[API Gateway / UI<br/>Replaces JSP scriptlets]
-    Users[Users Service<br/>Unique email validation]
-    Customers[Customers Service<br/>Prevent delete if dependent hours]
-    Billing[Billing Service<br/>Revenue calc, BigDecimal]
-    Reporting[Reporting Service<br/>Reports API replaces direct SQL in JSP]
-    DataAccess[Data-access module<br/>shared DAOs & migration helpers]
+    UI[API Gateway / UI<br>Replaces JSP scriptlets]
+    Users[Users Service<br>Unique email validation]
+    Customers[Customers Service<br>Prevent delete if dependent hours]
+    Billing[Billing Service<br>Revenue calc, BigDecimal]
+    Reporting[Reporting Service<br>Reports API replaces direct SQL in JSP]
+    DataAccess[Data-access module<br>shared DAOs & migration helpers]
   end
 
-  DB[Managed RDBMS (Postgres or managed)<br/>Schema via Flyway] 
-  Legacy[Legacy Monolith<br/>Embedded Derby, JSPs, inline DDL]
+  DB[Managed RDBMS (Postgres or managed)<br>Schema via Flyway] 
+  Legacy[Legacy Monolith<br>Embedded Derby, JSPs, inline DDL]
 
   %% Flows
   UI -->|HTTP| Users

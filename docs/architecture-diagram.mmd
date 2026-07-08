@@ -1,23 +1,24 @@
 %% Architecture diagram (Mermaid)
 %% Shows target services, platform, data flow, and links to substitution-audit concerns
 graph LR
-  subgraph Platform[Platform / Runtime]
-    K8s[Kubernetes / Managed Containers<br/>Config, Secrets, Observability]
-    Auth[Auth (OIDC) / API Gateway]
-    Observability[Metrics / Tracing (Prometheus / OTEL)]
+  %% Use quoted multiline labels to avoid parser issues
+  subgraph PLATFORM [Platform / Runtime]
+    K8s["Kubernetes - Managed Containers\nConfig, Secrets, Observability"]
+    Auth["Auth (OIDC) / API Gateway"]
+    Observability["Metrics & Tracing (Prometheus, OTEL)"]
   end
 
-  subgraph Services[Modernized Services]
-    UI[API Gateway / UI<br/>Replaces JSP scriptlets]
-    Users[Users Service<br/>Unique email validation]
-    Customers[Customers Service<br/>Prevent delete if dependent hours]
-    Billing[Billing Service<br/>Revenue calc, BigDecimal]
-    Reporting[Reporting Service<br/>Reports API replaces direct SQL in JSP]
-    DataAccess[Data-access module<br/>shared DAOs & migration helpers]
+  subgraph SERVICES [Modernized Services]
+    UI["API Gateway / UI\n(replaces JSP scriptlets)"]
+    Users["Users Service\n(unique email validation)"]
+    Customers["Customers Service\n(prevent delete if dependent hours)"]
+    Billing["Billing Service\n(revenue calc, BigDecimal)"]
+    Reporting["Reporting Service\n(reports API replaces direct SQL in JSP)"]
+    DataAccess["Data-access module\n(shared DAOs & migration helpers)"]
   end
 
-  DB[Managed RDBMS (Postgres or managed)<br/>Schema via Flyway] 
-  Legacy[Legacy Monolith<br/>Embedded Derby, JSPs, inline DDL]
+  DB["Managed RDBMS (Postgres or managed)\n(schema via Flyway)"]
+  Legacy["Legacy Monolith\n(Embedded Derby, JSPs, inline DDL)"]
 
   %% Flows
   UI -->|HTTP| Users
