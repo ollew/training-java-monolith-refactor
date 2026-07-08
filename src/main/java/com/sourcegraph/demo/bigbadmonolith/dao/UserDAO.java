@@ -9,18 +9,24 @@ public class UserDAO {
     
     public User save(User user) {
         String sql = "INSERT INTO users (email, name) VALUES (?, ?)";
-        
+
+        // Pre-insert check to provide a clear error for duplicate emails
+        User existing = findByEmail(user.getEmail());
+        if (existing != null) {
+            throw new IllegalArgumentException("Email already registered");
+        }
+
         try (Connection conn = LibertyConnectionManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            
+
             stmt.setString(1, user.getEmail());
             stmt.setString(2, user.getName());
-            
+
             int affectedRows = stmt.executeUpdate();
             if (affectedRows == 0) {
                 throw new SQLException("Creating user failed, no rows affected.");
             }
-            
+
             try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
                     user.setId(generatedKeys.getLong(1));
@@ -29,8 +35,14 @@ public class UserDAO {
                     throw new SQLException("Creating user failed, no ID obtained.");
                 }
             }
-            
+
         } catch (SQLException e) {
+            // Attempt to detect unique constraint violations and rethrow as a clear IllegalArgumentException
+            String sqlState = e.getSQLState();
+            String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            if ("23505".equals(sqlState) || msg.contains("unique") || msg.contains("duplicate")) {
+                throw new IllegalArgumentException("Email already registered", e);
+            }
             throw new RuntimeException("Failed to save user", e);
         }
     }
