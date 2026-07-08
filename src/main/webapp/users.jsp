@@ -12,9 +12,13 @@
         String email = request.getParameter("email");
         
         try {
-            User user = new User(name, email);
+            // User constructor expects (email, name)
+            User user = new User(email, name);
             userDAO.save(user);
             message = "User added successfully!";
+        } catch (IllegalArgumentException iae) {
+            // Show friendly validation messages (e.g. duplicate email)
+            message = iae.getMessage();
         } catch (Exception e) {
             message = "Error adding user: " + e.getMessage();
         }
