@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Architecture Diagram Preview</title>
+  <script type="module">
+    import mermaid from 'https://unpkg.com/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad:true, theme: 'default' });
+    window.mermaid = mermaid;
+  </script>
+  <style>body{font-family:Arial,Helvetica,sans-serif;padding:20px;background:#fff}</style>
+</head>
+<body>
+  <h1>Architecture Diagram Preview</h1>
+  <div class="mermaid">
+%% Architecture diagram (Mermaid)
+%% Shows target services, platform, data flow, and links to substitution-audit concerns
+graph LR
+  subgraph Platform[Platform / Runtime]
+    K8s[Kubernetes / Managed Containers]\n(Config, Secrets, Observability)
+    Auth[Auth (OIDC) / API Gateway]
+    Observability[Metrics / Tracing (Prometheus / OTEL)]
+  end
+
+  subgraph Services[Modernized Services]
+    UI[API Gateway / UI]\n(Replaces JSP scriptlets)
+    Users[Users Service]\n(Unique email validation)
+    Customers[Customers Service]\n(Prevent delete if dependent hours)
+    Billing[Billing Service]\n(Revenue calc, BigDecimal)
+    Reporting[Reporting Service]\n(Reports API replaces direct SQL in JSP)
+    DataAccess[Data-access module]\n(shared DAOs & migration helpers)
+  end
+
+  DB[Managed RDBMS (Postgres or managed)\nSchema via Flyway] 
+  Legacy[Legacy Monolith]\n(Embedded Derby, JSPs, inline DDL)
+
+  %% Flows
+  UI -->|HTTP| Users
+  UI -->|HTTP| Customers
+  UI -->|HTTP| Billing
+  UI -->|HTTP| Reporting
+
+  Users -->|JDBC/ORM| DB
+  Customers -->|JDBC/ORM| DB
+  Billing -->|JDBC/ORM| DB
+  Reporting -->|JDBC/Read-optimized| DB
+  DataAccess -->|DB bridge| DB
+
+  Legacy -->|Strangler proxies / dual-write| DataAccess
+  Legacy -->|Gradual replace| UI
+
+  Auth --> UI
+  Auth --> Users
+  Platform -->|provides| K8s
+  K8s -->|manages| Services
+  Observability -->|collects| Services
+
+  %% Annotations linking to substitution-audit topics
+  classDef note fill:#fff7d6,stroke:#e6b800
+  class DB,Legacy note
+  </div>
+
+  <p>Open this file in a browser that allows loading modules from unpkg (modern browsers). If you see the diagram, it's rendered locally.</p>
+</body>
+</html>
